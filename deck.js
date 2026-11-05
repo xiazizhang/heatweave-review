@@ -4033,6 +4033,7 @@ void main() {
         (E.emissiveIntensity = v ? 0.32 : 0));
     }
     let d = {
+      parallel: 0,
       t: new C(0, 0, 1.6),
       p: new C(8, -9, 4.5),
       fov: 30,
@@ -4045,6 +4046,12 @@ void main() {
         n.lookAt(d.t.x, d.t.z, -d.t.y),
         n.setViewOffset(1920, 1080, 960 - d.sx, 540 - d.sy, 1920, 1080),
         n.updateProjectionMatrix());
+      n.isOrthographicCamera = !!d.parallel;
+      if (d.parallel) {
+        const scale = d.parallel / 1080;
+        n.projectionMatrix.makeOrthographic(-d.sx * scale, (1920 - d.sx) * scale, d.sy * scale, (d.sy - 1080) * scale, n.near, n.far);
+        n.projectionMatrixInverse.copy(n.projectionMatrix).invert();
+      }
     }
     let x = new C();
     function T(w, V, v) {
@@ -4060,6 +4067,7 @@ void main() {
       renderer: t,
       scene: e,
       world: s,
+      model: l,
       parts: h,
       UB: p,
       cam: d,
@@ -4369,15 +4377,15 @@ void main() {
           cam: {
             t: [0, 0, 1.75],
             p: [8.6, -9.8, 4],
-            fov: 27,
-            sx: 1330,
+            fov: 30,
+            sx: 1280,
             sy: 545,
           },
           enter(i) {
             (Object.assign(i.s, Er()),
               Un(i, 1, 1, -5, 0, 0.8),
               (i.s.sunAz = 215),
-              (i.s.sunEl = 58),
+              (i.s.sunEl = 72),
               xn(i, !0),
               (i.field = 0));
           },
@@ -4934,7 +4942,7 @@ void main() {
   function Mh(i, t) {
     let e = document.getElementById("notes");
     addEventListener("keydown", (o) => {
-      if (o.target.closest && o.target.closest("iframe")) return;
+      if (o.target.closest && o.target.closest("iframe, input, select, textarea, button, a") && !["f", "F", "n", "N"].includes(o.key)) return;
       let a = o.key;
       ["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(a)
         ? (o.preventDefault(), t.go(t.cur() + 1))
@@ -5033,7 +5041,7 @@ void main() {
     xe.world.add(No.root);
     xe.world.add(Fo.root);
     Fo.root.visible = !1;
-    /* ===== HW v3: ZED BODY_34 skeletons, C1–C4 scenes, airflow ===== */
+    /* ===== HW v3: ZED BODY_34 skeletons, P1–C4 scenes, airflow ===== */
     var HWD = Math.PI / 180;
     var vadd = (a, ...bs) => { let r = a.slice(); for (let i = 0; i < bs.length; i += 2) { let b = bs[i], k = bs[i + 1]; r[0] += b[0] * k; r[1] += b[1] * k; r[2] += b[2] * k; } return r; };
     function skel34(o, tt) {
@@ -5124,7 +5132,7 @@ void main() {
     })();
     var airP = [];
     for (let n = 0; n < AIRN; n++) airP.push({ s: airSrc[n % airSrc.length], t: Math.random(), sp: 0.1 + Math.random() * 0.05, j: Math.random() * 6.28 });
-    var airC1 = new Ft(0x6aa6cc), airC2 = new Ft(0xef8b3d), airCc = new Ft();
+    var airCool = new Ft(0x6aa6cc), airC2 = new Ft(0xef8b3d), airCc = new Ft();
     function airStep(dt, tt) {
       airP.forEach((a, n) => {
         a.t += a.sp * dt; if (a.t > 1) { a.t -= 1; a.s = airSrc[Math.floor(Math.random() * airSrc.length)]; }
@@ -5134,7 +5142,7 @@ void main() {
         else if (t < 0.84) { let q = (t - 0.36) / 0.48, r = 0.3 * Math.max(0, 1 - q * 6) + 0.06; x = o[0] * r; y = o[1] * r; z = 0.5 + 3.2 * q; mix = q; }
         else { let q = (t - 0.84) / 0.16, r = 0.12 + 0.35 * q; x = o[0] * r + Math.sin(tt + a.j) * 0.05 * q; y = o[1] * r; z = 3.7 + 0.9 * q; sc = 1 - q; mix = 1; }
         _p.set(x, y, z); _q.identity(); _s.set(sc, sc, sc); _m.compose(_p, _q, _s); airM.setMatrixAt(n, _m);
-        airCc.copy(airC1).lerp(airC2, mix); airM.setColorAt(n, airCc);
+        airCc.copy(airCool).lerp(airC2, mix); airM.setColorAt(n, airCc);
       });
       airM.instanceMatrix.needsUpdate = !0; airM.instanceColor && (airM.instanceColor.needsUpdate = !0);
     }
@@ -5151,10 +5159,10 @@ void main() {
     var plMesh = new ce(new Ri(2 * HE.HX, 2 * HE.HY), new Ks({ map: plTex, transparent: !0, opacity: 0.42, depthWrite: !1 }));
     plMesh.position.z = 0.008; ENVG.add(plMesh); ENVG.visible = !1; xe.world.add(ENVG);
     function envAt(x, y) { let c = Math.floor((x + HE.HX) / HE.CELL), r = Math.floor((y + HE.HY) / HE.CELL); return c < 0 || r < 0 || c >= HE.NX || r >= HE.NY ? 0.5 : envV[r * HE.NX + c]; }
-    function envDraw(loc) {
+    function envDraw(loc, cx = 0, cy = 0, wholeStreet = false) {
       let d = envImg.data, NX = HE.NX, NY = HE.NY;
       for (let r = 0; r < NY; r++) for (let c = 0; c < NX; c++) {
-        let x = -HE.HX + (c + 0.5) * HE.CELL, y = -HE.HY + (r + 0.5) * HE.CELL, v = 0.34 + 0.42 * envV[r * NX + c], rr = Math.hypot(x, y * 1.15), al = 1 - sm((rr - 4.8) / 4.2);
+        let x = -HE.HX + (c + 0.5) * HE.CELL, y = -HE.HY + (r + 0.5) * HE.CELL, v = 0.34 + 0.42 * envV[r * NX + c], rr = Math.hypot(x - cx, (y - cy) * 1.15), al = wholeStreet ? 0.32 + 0.68 * (1 - sm((rr - 3.1) / 2.4)) : 1 - sm((rr - 4.8) / 4.2);
         if (loc && Math.abs(x) < 3.15 && Math.abs(y) < 3.15) { let q = jg(loc, x, y); if (q > 0.01) v = Math.max(v, 0.2 + 0.78 * q); }
         let g = Math.round(255 * v), i = ((NY - 1 - r) * NX + c) * 4; d[i] = d[i + 1] = d[i + 2] = g; d[i + 3] = Math.round(255 * al);
       }
@@ -5292,10 +5300,10 @@ void main() {
       s += box(0, 0, 196, 128, "01", "Sensing", "多源感知");
       s += tx(14, 58, "ENV radiation · sun", "辐射") + tx(14, 82, "ZED skeleton", "骨骼 BODY_34") + tx(14, 106, "VLM labels", "活动标签", LC.ink2);
       s += box(226, 0, 464, 128, "02", "Evaluation", "多维评价");
-      [["ENV", "Radiation", "辐射与投影"], ["C1", "Density", "密度与需求"], ["C2", "Head height", "头高与净空"], ["C3", "Head pitch", "头部俯仰"], ["C4", "Stability", "姿态稳定"]].forEach((q, k) => (s += chip(238 + k * 89, 38, 81, 60, q[0], q[1], q[2], k === a || (a === 1 && k === 0))));
+      [["ENV", "Radiation", "辐射与投影"], ["P1", "Density", "密度与需求"], ["C2", "Head height", "头高与净空"], ["C3", "Head pitch", "头部俯仰"], ["C4", "Stability", "姿态稳定"]].forEach((q, k) => (s += chip(238 + k * 89, 38, 81, 60, q[0], q[1], q[2], k === a || (a === 1 && k === 0))));
       s += box(226, 156, 464, 92, "03", "Rules & decision", "规则与决策");
       let upOn = a === 1, loOn = a !== 1;
-      s += chip(238, 184, 210, 58, "Upper fusion", "ENV + C1", "上层融合", upOn, 16);
+      s += chip(238, 184, 210, 58, "Upper fusion", "ENV + P1", "上层融合", upOn, 16);
       s += chip(468, 184, 210, 58, "Lower shared control", "C2 / C3 / C4", "下层共享控制", loOn, 16);
       s += box(226, 276, 464, 104, "04", "Adaptive form", "自适应形态");
       s += tx(240, 322, "Upper · rotation", "上层旋转", upOn ? LC.hot : LC.ink, upOn ? 700 : 400) + `<text x="420" y="322" font-family="Bahnschrift" font-size="14" fill="${LC.ink}">${live.up}</text>`;
@@ -5408,7 +5416,91 @@ void main() {
     oh.eye.enter = (function (f) { return function (i) { f.call(this, i); i.field = 0; ENVG.visible = !0; }; })(oh.eye.enter);
     oh.eye.leave = function () { ENVG.visible = !1; };
     oh.eye.tick = function (i) { envDraw(i.ag.F ? i.ag.F[2] : null); };
-    /* four actions demo: fold goes down, then up (like a foldable screen) */
+
+    oh.device = {
+      cam: { t: [0, 0, 1.55], p: [10, -10, 9.715], fov: 25, sx: 1285, sy: 536, parallel: 7.1 },
+      enter(i) {
+        oh.eye.enter(i);
+        i.s.sunEl = 71;
+        xn(i, false);
+        i.manual = true;
+        for (let j = 0; j < 5; j++) i.st.poseLower(j, [0, 0, 0, 0, 0]);
+        for (let j = 0; j < 3; j++) i.st.poseUpper(j, 0);
+        envDraw(null);
+      },
+      leave(i) { oh.eye.leave(); i.manual = false; }
+    };
+    oh.environment = {
+      cam: { t: [0, 0, 0.35], p: [3, -11, 19], fov: 38, sx: 1200, sy: 562, parallel: 19.2 },
+      enter(i) {
+        this.slider = i.$("#envPosition")[0];
+        this.button = i.$("#envPlay")[0];
+        this.canvas = i.$("#envLocal")[0];
+        this.readout = i.$("#envReadout")[0];
+        this.playing = false;
+        this.last = -1;
+        this.angles = i.st.UB.map(() => 0);
+        this.button.textContent = "▶ 推动装置";
+        this.button.onclick = () => {
+          if (+this.slider.value >= 100) { this.slider.value = 0; this.travel = 0; }
+          this.playing = !this.playing;
+          this.button.textContent = this.playing ? "Ⅱ 暂停" : "▶ 推动装置";
+        };
+        this.slider.oninput = () => { this.playing = false; this.button.textContent = "▶ 推动装置"; };
+        this.travel = +this.slider.value;
+        i.manual = true; i.field = 0; xn(i, false);
+        i.s.sunAz = 205; i.s.sunEl = 68;
+        for (let j = 0; j < 5; j++) i.st.poseLower(j, [0, 0, 0, 0, 0]);
+        ENVG.visible = true;
+      },
+      leave(i) {
+        i.manual = false; ENVG.visible = false;
+        i.st.model.position.set(0, 0, 0);
+      },
+      tick(i, dt) {
+        if (this.playing) {
+          this.travel = Math.min(100, this.travel + dt * 11);
+          this.slider.value = this.travel;
+          if (this.travel >= 100) { this.playing = false; this.button.textContent = "↻ 再推一次"; }
+        } else this.travel = +this.slider.value;
+        const u = this.travel / 100;
+        const x = -8 + 16 * u;
+        const y = -1.5 + 3 * u;
+        i.st.model.position.set(x, y, 0);
+        if (Math.abs(this.travel - this.last) >= 0.49 || this.last < 0) {
+          this.last = this.travel;
+          envDraw(null, x, y, true);
+          const context = this.canvas.getContext("2d");
+          const sectors = Array(12).fill(0);
+          const counts = Array(12).fill(0);
+          for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) {
+            const dx = (c - 10) * 0.3, dy = (10 - r) * 0.3;
+            const radiation = envAt(x + dx, y + dy);
+            const g = Math.round(38 + 207 * radiation);
+            context.fillStyle = "rgb(" + g + " " + g + " " + g + ")";
+            context.fillRect(c * 10, r * 10, 10, 10);
+            if (Math.hypot(dx, dy) < 0.7) continue;
+            const k = Math.floor((Math.atan2(dy, dx) / HWD + 375) % 360 / 30);
+            sectors[k] += radiation; counts[k]++;
+          }
+          const ranks = sectors.map((v, k) => ({ angle: k * 30, mean: v / counts[k] })).sort((a, b) => b.mean - a.mean);
+          this.targets = ranks.slice(0, 3).map((sector, j) => Li(sector.angle - i.st.UB[j]));
+          this.readout.textContent = (u * Math.hypot(16, 3)).toFixed(1) + " m · " + ranks[0].angle + "° 主方向";
+        }
+        this.angles.forEach((angle, j) => {
+          this.angles[j] += Li(this.targets[j] - angle) * Math.min(1, dt * 3);
+          i.st.poseUpper(j, this.angles[j]);
+        });
+      },
+      overlay(i) {
+        const {x, y} = i.st.model.position;
+        const [a, b] = i.st.project(-8, -1.5, 0.02);
+        const [c, d] = i.st.project(8, 1.5, 0.02);
+        const [px, py] = i.st.project(x - 1.25, y, 0);
+        Uo.innerHTML = `<path d="M${a} ${b}L${c} ${d}" stroke="#bb6d29" stroke-width="2" stroke-dasharray="8 7" opacity=".7"/><circle cx="${c}" cy="${d}" r="6" fill="#bb6d29"/><svg x="${px - 53}" y="${py - 76}" width="102" height="82" viewBox="0 0 180 128" color="#22272B"><use href="#person-push"/></svg>`;
+      }
+    };
+    /* Four actions: both tips fold down and return to neutral. */
     oh.dof.enter = function (i) {
       xn(i, !1); i.field = 0; i.manual = !0; i.st.highlight("lower", 0, !0); i.st.highlight("upper", 0, !0); i.s.sunAz = 200; i.s.sunEl = 62;
       for (let f = 0; f < 3; f++) i.st.poseUpper(f, 0);
@@ -5420,10 +5512,9 @@ void main() {
       let r = q / cyc[s], o = Math.max(0, Math.sin(Math.PI * c0(r * 1.25))), a = [0, 0, 0, 0, 0];
       i.st.poseUpper(0, s === 0 ? 55 * o : 0);
       if (s === 1) a[0] = -0.45 * o; if (s === 2) a[2] = 8 * o;
-      if (s === 3) { let w = Math.sin(2 * Math.PI * c0(Math.min(1, r * 1.12))); a[3] = a[4] = -27 * w; }
+      if (s === 3) { let w = Math.sin(Math.PI * c0(r)); a[3] = a[4] = -27 * w; }
       i.st.poseLower(0, a); for (let c = 1; c < 5; c++) i.st.poseLower(c, [0, 0, 0, 0, 0]);
       i.$(".dof").forEach((c) => c.classList.toggle("on", +c.dataset.k === s));
-      let tag = i.$("#foldTag")[0]; if (tag) tag.textContent = s === 3 ? (a[3] < -1 ? `Fold down 下折 ${(-0.7 * Math.tan(a[3] * HWD)).toFixed(2)} m` : a[3] > 1 ? `Fold up 上折 ${(0.7 * Math.tan(a[3] * HWD)).toFixed(2)} m` : "") : "";
     };
     /* airflow on the agent slide */
     oh.agent.enter = (function (f) { return function (i) { f.call(this, i); airM.visible = !0; }; })(oh.agent.enter);
@@ -5457,8 +5548,11 @@ void main() {
       ls = null,
       hs = 1;
     function Ph() {
-      let i = Math.min(innerWidth / 1920, innerHeight / 1080);
-      ((f0.style.transform = `scale(${i})`),
+      const fit = Math.min(innerWidth / 1920, innerHeight / 1080);
+      const x = Math.min(innerWidth / 1920, fit * 1.24);
+      const y = Math.min(innerHeight / 1080, fit * 1.24);
+      const i = Math.max(x, y);
+      ((f0.style.transform = `scale(${x}, ${y})`),
         xe.setSize(Math.min(2, (devicePixelRatio || 1) * i * 1.25)));
     }
     addEventListener("resize", Ph);
@@ -5484,6 +5578,8 @@ void main() {
           (hs = t || Ah ? 1 : 0)),
         e.dataset.anim === "heat" && x0(),
         Sh(i, yn),
+        document.getElementById("pageBack").disabled = i === 0,
+        document.getElementById("pageNext").disabled = i === yn.length - 1,
         history.replaceState(null, "", "#" + (i + 1)));
       document.querySelectorAll("video.mrv").forEach((v) => { if (!e.contains(v)) { v.pause(); v.closest(".mrq") && v.closest(".mrq").classList.remove("on"); } });
       let n = document.getElementById("simVideo");
@@ -5565,6 +5661,7 @@ void main() {
           We.p[2],
         ),
         (xe.cam.fov = We.fov),
+        (xe.cam.parallel = t.parallel || 0),
         (xe.cam.sx = We.sx),
         (xe.cam.sy = We.sy));
     }
@@ -5600,6 +5697,7 @@ void main() {
         ie.minis && nn.F && y0(nn.F, ie.fieldCh),
         M0(t),
         xe.render(),
+        Fe.overlay && Fe.overlay(ie),
         ie.dim && S0()),
         n &&
           n.dataset.anim === "skel" &&
